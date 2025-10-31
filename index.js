@@ -10,9 +10,11 @@ app.use(express.json());
 
 //W126WHjjE2AehHOp
 //smartdb_user
+// MongoDB Connection URI
 
 const uri = "mongodb+srv://smartdb_user:W126WHjjE2AehHOp@cluster0.hd5uevl.mongodb.net/?appName=Cluster0";
 
+// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -21,25 +23,38 @@ const client = new MongoClient(uri, {
   }
 });
 
-
+// Root Endpoint
 app.get('/', (req, res) => {
     res.send('Smart Deals Server is running');
 });
 
+// Database Operations
 async function run() {
     try {
         await client.connect();
-
-
         const db = client.db("smart_db");
         const productsCollection = db.collection("products");
+        const usersCollection = db.collection("bids");
 
+
+        // Get all products
         app.get('/products', async (req, res) => {
-            const cursor = productsCollection.find();
+            // const projectFields = { title: 1, price_min: 1, price_max: 1, image: 1};
+            // const cursor = productsCollection.find().sort({ price_min: -1 }).skip(2).limit(2).project(projectFields);
+
+            console.log(req.query);
+            const email = req.query.email;
+            const query = {}
+            if(email){
+                query.email = email;
+            }
+
+            const cursor = productsCollection.find(query);
             const result = await cursor.toArray();
             res.send(result);
         });
 
+        // Get a single product by ID
         app.get('/products/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -47,12 +62,14 @@ async function run() {
             res.send(result);
         });
 
+        // Add a new product
         app.post('/products', async (req, res) => {
             const newProduct = req.body;
             const result = await productsCollection.insertOne(newProduct);
             res.send(result);
         });
 
+        // Update a product
         app.patch('/products/:id', async (req, res) => {
             const id = req.params.id;
             const updatedProduct = req.body;
@@ -68,7 +85,7 @@ async function run() {
         });
 
 
-
+    // Delete a product
         app.delete('/products/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -77,8 +94,53 @@ async function run() {
         });
 
 
+        //bids related api
+        app.get('/bids', async (req, res) => {
+
+            const email = req.query.email;
+            const query = {};
+            if(email){
+                query.buyer_email = email;
+            }
+
+            const cursor = usersCollection.find(query);
+            const result = await cursor.toArray();
+            res.send(result);
+        });
+
+       // Add a new bid
+        app.post('/bids', async (req, res) => {
+            const newBid = req.body;
+            const result = await bidsCollection.insertOne(newBid);
+            res.send(result);
+        });
+
+        // Update a bid
+        app.patch('/bids/:id', async (req, res) => {
+            const id = req.params.id;
+            const updatedBid = req.body;
+            const query = { _id: new ObjectId(id) };
+            const update = {
+                $set: {
+                    bid_price: updatedBid.bid_price
+                }
+            };
+            const result = await usersCollection.updateOne(query, update);
+            res.send(result);
+        });
+        
+        // Delete a bid
+        app.delete('/bids/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await bidsCollection.deleteOne(query);
+            res.send(result);
+        });
 
 
+
+
+    // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     }
@@ -87,13 +149,13 @@ async function run() {
 
     }
 }
-
+// Call the run function to connect to the database
 run ().catch(console.dir);
 
 
 
 
-
+// Start the server
 app.listen(port, () => {
     console.log(`Smart Server is running on port: ${port}`);
 });
