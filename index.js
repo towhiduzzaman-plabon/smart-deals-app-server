@@ -12,8 +12,9 @@ app.use(express.json())
 //W126WHjjE2AehHOp
 //smartdb_user
 
-// MongoDB Connection URI
-const uri = "mongodb+srv://smartdb_user:W126WHjjE2AehHOp@cluster0.hd5uevl.mongodb.net/?appName=Cluster0";
+require('dotenv').config();
+const uri = process.env.MONGODB_URI;
+
 
 const client = new MongoClient(uri, {
     serverApi: {
